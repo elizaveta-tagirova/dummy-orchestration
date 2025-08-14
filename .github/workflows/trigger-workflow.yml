@@ -17,7 +17,7 @@ jobs:
 
       - name: Install yq & jq
         run: |
-          sudo apt-get updat
+          sudo apt-get update
           sudo apt-get install -y yq jq
 
       - name: Read targets from config file
