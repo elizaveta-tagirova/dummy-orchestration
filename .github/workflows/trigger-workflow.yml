@@ -1,0 +1,96 @@
+name: Trigger Remote Workflows
+
+on:
+  push:
+    branches: [main]
+
+env:
+  TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+
+jobs:
+  load-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read targets from config file
+        id: set-targets
+        run: |
+          echo "Trigger targets:"
+          cat trigger-targets.yml
+          
+          MATRIX_JSON=$(yq -o=json '.' trigger-targets.yml)
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
+
+  fanout:
+    needs: load-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
+    steps:
+      - name: Trigger remote workflow
+        id: trigger-target
+        shell: bash
+        run: |
+          REPO="${{ matrix.repo }}"
+          WORKFLOW="${{ matrix.workflow_filename }}"
+          BRANCH="${{ matrix.branch }}"
+
+          echo "Triggering ${REPO}/${WORKFLOW} on branch ${BRANCH}"
+
+          curl -X POST \
+            -H "Authorization: token $TRIGGER_TOKEN" \
+            https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches \
+            -H "Accept: application/vnd.github+json" \
+            -d '{"ref": "${REF}"}'
+
+      - name: Wait for completion
+        run: |
+          REPO="${{ matrix.repo }}"
+          WORKFLOW="${{ matrix.workflow_filename }}"
+          BRANCH="${{ matrix.branch }}"
+
+          echo "Looking for latest run..."
+          RUN_ID=""
+          ATTEMPTS=0
+          MAX_ATTEMPTS=60
+          while [[ -z "$RUN_ID" && $ATTEMPTS -lt $MAX_ATTEMPTS ]]; do
+            RUN_ID=$(
+              curl -s \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: token $TRIGGER_TOKEN" \
+                "https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&branch=${BRANCH}" \
+                | jq -r '.workflow_runs[0].id'
+            )
+            [[ -z "$RUN_ID" ]] && sleep 2
+            ((ATTEMPTS++))
+          done
+
+          if [[ -z "$RUN_ID" ]]; then
+            echo "ERROR: Run not found"
+            exit 1
+          fi
+
+          echo "Waiting for completion of run $RUN_ID..."
+          STATUS=""
+          CONCLUSION=""
+          while true; do
+            read -r STATUS CONCLUSION < <(
+              curl -s \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: token $TRIGGER_TOKEN" \
+                "https://api.github.com/repos/${REPO}/actions/runs/${RUN_ID}" \
+              | jq -r '.status + " " + ( .conclusion // "" )'
+            )
+            echo "Status: $STATUS Conclusion: $CONCLUSION"
+            [[ "$STATUS" == "completed" ]] && break
+            sleep 10
+          done
+
+          echo "Final conclusion: $CONCLUSION"
+          if [[ "$CONCLUSION" != "success" ]]; then
+            exit 1
+          fi
