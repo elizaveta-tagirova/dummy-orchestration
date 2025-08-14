@@ -2,7 +2,8 @@ name: Trigger Remote Workflows
 
 on:
   push:
-    branches: [main]
+    paths:
+      - 'trigger-targets.yml'
 
 env:
   TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
