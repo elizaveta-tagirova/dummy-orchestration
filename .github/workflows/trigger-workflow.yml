@@ -17,7 +17,7 @@ jobs:
 
       - name: Install yq & jq
         run: |
-          sudo apt-get update
+          sudo apt-get updat
           sudo apt-get install -y yq jq
 
       - name: Read targets from config file
@@ -26,7 +26,7 @@ jobs:
         run: |
           echo "Trigger targets:"
           cat trigger-targets.yml
-          MATRIX_JSON=$(yq -o=json '.' trigger-targets.yml | jq -c '.')
+          MATRIX_JSON=$(yq -j '.' trigger-targets.yml | jq -c '.')
           echo "matrix=${MATRIX_JSON}" >> "$GITHUB_OUTPUT"
 
   fanout:
