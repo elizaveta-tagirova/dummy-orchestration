@@ -68,7 +68,7 @@ jobs:
               curl -sS \
                 -H "Accept: application/vnd.github+json" \
                 -H "Authorization: token ${TRIGGER_TOKEN}" \
-                "https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?event=workflow_dispatch&branch=${BRANCH}" \
+                "https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?event=repository_dispatch&branch=${BRANCH}" \
               | jq -r '.workflow_runs | sort_by(.created_at) | reverse | (.[0].id // empty)'
             )
             [[ -z "$RUN_ID" ]] && sleep 2
