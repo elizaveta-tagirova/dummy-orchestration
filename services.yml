@@ -1,0 +1,19 @@
+services:
+  - name: some-name
+    enabled: true # optional. default - true
+    repo: some-repo
+    environment_configs:
+      test-env:
+        branch: master
+      pre-prod:
+        branch: master
+        enabled: false
+      prod:
+        branch: master
+        enabled: false
+      workflow_file: some.yml
+      env: # optional
+        image_tag: dev
+      files_to_push: # optional
+        - source: some/path.yml # required if upper used
+          destination: # required if upper used
