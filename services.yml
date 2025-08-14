@@ -11,9 +11,9 @@ services:
       prod:
         branch: master
         enabled: false
-      workflow_file: some.yml
-      env: # optional
-        image_tag: dev
-      files_to_push: # optional
-        - source: some/path.yml # required if upper used
-          destination: # required if upper used
+    workflow_file: some.yml
+    env: # optional
+      image_tag: dev
+    files_to_push: # optional
+      - source: some/path.yml # required if upper used
+        destination: # required if upper used
