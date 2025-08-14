@@ -1,0 +1,4 @@
+targets:
+  - repo: elizaveta-tagirova/dummy-microservice
+    workflow_filename: test-workflow.yml
+    branch: main
