@@ -30,6 +30,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r .github/scripts/requirements.txt
 
+      - name: echo env var
+        run: |
+          echo $SERVICES_FILES
+
       - name: Run validator over services config file(s)
         run: |
           python .github/scripts/config_validation.py $SERVICES_FILES
