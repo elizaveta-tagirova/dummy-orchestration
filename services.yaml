@@ -1,7 +1,7 @@
 services:
   - name: some-name
     enabled: true # optional. default - true
-    repo: some-repo
+#    repo: some-repo
     environment_configs:
       test-env:
         branch: master
