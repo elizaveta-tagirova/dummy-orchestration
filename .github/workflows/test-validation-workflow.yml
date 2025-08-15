@@ -32,7 +32,7 @@ jobs:
 
       - name: Run validator over services config file(s)
         run: |
-          python .github/scripts/config_validation.py $CONFIG_FILES
+          python .github/scripts/config_validation.py SERVICES_FILES
 
   dummy-job:
     name: Dummy job
