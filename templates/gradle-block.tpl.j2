@@ -1,0 +1,9 @@
+// >>> BEGIN GENERATED DO NOT EDIT
+// source: {{ source }}
+// checksum: {{ checksum }}
+val featureFlag = {{ "true" if featureFlag else "false" }}
+val logLevel by extra("{{ logLevel }}")
+{% for k, v in extraParams.items() -%}
+{{ k }}="{{ v }}"
+{% endfor -%}
+// <<< END GENERATED
