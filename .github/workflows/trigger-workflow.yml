@@ -1,6 +1,7 @@
 name: Trigger Remote Workflows
 
 on:
+  workflow_dispatch: {}
   push:
     paths:
       - 'trigger-targets.yml'
