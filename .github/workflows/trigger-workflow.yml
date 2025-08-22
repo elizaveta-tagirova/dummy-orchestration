@@ -71,7 +71,7 @@ jobs:
           git config user.name "Dummy Orchestrator"
           git config user.email "dummy-orchestrator@example.com"
           mkdir -p .config/generated
-          rsync -a ../out/ .config/generated/
+          rsync -a ../out/${{ matrix.name }}/${ENVIRONMENT_NAME} .config/generated/
           git add .config/generated
           if git diff --cached --quiet; then
             echo "No changes to commit"
