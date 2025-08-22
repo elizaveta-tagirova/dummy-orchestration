@@ -86,7 +86,6 @@ jobs:
           VARS=${{ toJson(matrix.config_variables) }}
           
           echo "$VARS" | jq -c '.[]' | while read -r entry; do
-            name=$(echo "$entry"   | jq -r '.name')
             schema=$(echo "$entry" | jq -r '.schema // empty')
             values_path=$(echo "$entry" | jq -r '.values')
             values_path=$(echo "$values_path" | sed "s/{{env}}/${ENVIRONMENT_NAME}/g")
