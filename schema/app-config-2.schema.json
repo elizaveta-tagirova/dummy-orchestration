@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "App Config 2",
+  "type": "object",
+  "required": ["featureFlag", "logLevel"],
+  "properties": {
+    "featureFlag": { "type": "boolean" },
+    "logLevel": { "type": "string", "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"] },
+    "extraParams": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

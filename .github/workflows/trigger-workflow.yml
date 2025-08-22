@@ -38,6 +38,27 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with: { python-version: "3.x" }
+
+      - name: Install renderer deps
+        run: python -m pip install -r tools/requirements.txt
+
+      - name: Render configs
+        run: |
+          NAME="${{ matrix.name }}"
+          CONFIGS="${{ matrix.configs }}"
+          echo "Render configs for ${NAME}: ${CONFIGS}"
+#          python tools/render.py \
+#            --schema schema/app-config.schema.json \
+#            --values values/${{ matrix.name }}/${{ matrix.env }}.yaml \
+#            --templates templates \
+#            --out out
+
       - name: Trigger remote workflow
         id: trigger-target
         shell: bash

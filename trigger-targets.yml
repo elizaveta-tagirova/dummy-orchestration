@@ -3,3 +3,21 @@ include:
     workflow_filename: test-workflow.yml
     branch: main
     name: dummy-microservice
+    environments: [prod, test]
+    configs:
+      - name: app-config-1
+        schema: schema/app-config-1.schema.json
+        values: values/dummy-microservice/{{env}}/app-config-1.yaml
+        templates:
+          - path: templates/app-config-1/env.tpl.j2
+            output: out/dummy-microservice/{{env}}/files/app-config-1.env
+          - path: templates/app-config-1/gradle-block.tpl.j2
+            output: out/dummy-microservice/{{env}}/blocks/app-config-1.gradle-block
+      - name: app-config-2
+        schema: schema/app-config-2.schema.json
+        values: values/dummy-microservice/{{env}}/app-config-2.yaml
+        templates:
+          - path: templates/app-config-1/env.tpl.j2
+            output: out/dummy-microservice/{{env}}/files/app-config-2.env
+          - path: templates/app-config-1/gradle-block.tpl.j2
+            output: out/dummy-microservice/{{env}}/blocks/app-config-2.gradle-block

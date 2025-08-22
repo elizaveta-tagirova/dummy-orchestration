@@ -1,4 +1,4 @@
 featureFlag: false
 logLevel: "INFO"
 extraParams:
-  param: "param value"
+  param: "param value 1"
