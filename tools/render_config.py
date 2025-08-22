@@ -37,46 +37,45 @@ def add_header(rendered: str, source: str) -> str:
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--schema", required=True)
-    p.add_argument("--values", required=True)
-    p.add_argument("--templates", required=True)
-    p.add_argument("--out", required=True)
+    p.add_argument("--configs", type=json.loads, help="JSON list of config objects")
     args = p.parse_args()
+    print("!!!")
+    print(args.configs)
 
     # root = pathlib.Path(".").resolve()
-    out = pathlib.Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-
-    with open(args.values, "r", encoding="utf-8") as f:
-        values = yaml.safe_load(f)
-    with open(args.schema, "r", encoding="utf-8") as f:
-        schema = json.load(f)
-    validate(values, schema)
-
-    jinja_env = Environment(
-        loader=FileSystemLoader(args.templates),
-        autoescape=False,
-        undefined=StrictUndefined,
-        keep_trailing_newline=True,
-        lstrip_blocks=True,
-        trim_blocks=True,
-    )
-    jinja_env.filters["regex_replace"] = regex_replace
-
-    # Provenance
-    # source = os.environ.get("B_SOURCE", "repo-b@<unknown-ref> " + args.values)
-    source = "repo B"
-
-    # Render files
-    def render_to(tpl_name, target):
-        tpl = jinja_env.get_template(tpl_name)
-        rendered = tpl.render(**values, source=source, checksum="{{checksum}}")
-        final = add_header(rendered, source)
-        pathlib.Path(target).parent.mkdir(parents=True, exist_ok=True)
-        pathlib.Path(target).write_text(final, encoding="utf-8")
-
-    render_to("env.tpl.j2", out / "env")
-    render_to("gradle-block.tpl.j2", out / "gradle-block")
+    # out = pathlib.Path(args.out)
+    # out.mkdir(parents=True, exist_ok=True)
+    #
+    # with open(args.values, "r", encoding="utf-8") as f:
+    #     values = yaml.safe_load(f)
+    # with open(args.schema, "r", encoding="utf-8") as f:
+    #     schema = json.load(f)
+    # validate(values, schema)
+    #
+    # jinja_env = Environment(
+    #     loader=FileSystemLoader(args.templates),
+    #     autoescape=False,
+    #     undefined=StrictUndefined,
+    #     keep_trailing_newline=True,
+    #     lstrip_blocks=True,
+    #     trim_blocks=True,
+    # )
+    # jinja_env.filters["regex_replace"] = regex_replace
+    #
+    # # Provenance
+    # # source = os.environ.get("B_SOURCE", "repo-b@<unknown-ref> " + args.values)
+    # source = "repo B"
+    #
+    # # Render files
+    # def render_to(tpl_name, target):
+    #     tpl = jinja_env.get_template(tpl_name)
+    #     rendered = tpl.render(**values, source=source, checksum="{{checksum}}")
+    #     final = add_header(rendered, source)
+    #     pathlib.Path(target).parent.mkdir(parents=True, exist_ok=True)
+    #     pathlib.Path(target).write_text(final, encoding="utf-8")
+    #
+    # render_to("env.tpl.j2", out / "env")
+    # render_to("gradle-block.tpl.j2", out / "gradle-block")
 
 
 if __name__ == "__main__":
