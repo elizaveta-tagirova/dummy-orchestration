@@ -17,6 +17,7 @@ on:
 
 env:
   TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+  VARS_TOKEN: ${{ secrets.VARS_TOKEN }}
   ENVIRONMENT_NAME: ${{ inputs.environment-name }}
 
 jobs:
@@ -94,11 +95,19 @@ jobs:
               k=$(echo "$kv" | jq -r '.key')
               v=$(echo "$kv" | jq -r '.value')
               payload=$(jq -n --arg name "$k" --arg value "$v" '{name:$name, value:$value}')
-              curl -X PATCH \
-                -H "Authorization: token ${TRIGGER_TOKEN}" \
+              update_code=$(curl -X PATCH \
+                -H "Authorization: token ${VARS_TOKEN}" \
                 -H "Accept: application/vnd.github+json" \
                 https://api.github.com/repos/${REPO}/actions/variables/$k \
                 -d "$payload"
+              )
+              if [ "$update_code" = "404" ]; then
+                create_code=$(curl -X POST \
+                  -H "Authorization: token ${VARS_TOKEN}" \
+                  -H "Accept: application/vnd.github+json" \
+                  https://api.github.com/repos/${REPO}/actions/variables/$k \
+                  -d "$payload")
+              fi
             done
           done
 
