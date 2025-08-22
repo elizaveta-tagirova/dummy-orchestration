@@ -35,47 +35,43 @@ def add_header(rendered: str, source: str) -> str:
     sumhex = sha256_bytes(payload_bytes)
     return rendered.replace(placeholder, sumhex).replace("{{ source }}", source)
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--configs", type=json.loads, help="JSON list of config objects")
-    args = p.parse_args()
-    print("!!!")
-    print(args.configs)
+def render_to(jinja_env, tpl_name, target, values, source):
+    tpl = jinja_env.get_template(tpl_name)
+    rendered = tpl.render(**values, source=source, checksum="{{checksum}}")
+    final = add_header(rendered, source)
+    # pathlib.Path(target).parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(final, encoding="utf-8")
 
-    # root = pathlib.Path(".").resolve()
-    # out = pathlib.Path(args.out)
-    # out.mkdir(parents=True, exist_ok=True)
-    #
-    # with open(args.values, "r", encoding="utf-8") as f:
-    #     values = yaml.safe_load(f)
-    # with open(args.schema, "r", encoding="utf-8") as f:
-    #     schema = json.load(f)
-    # validate(values, schema)
-    #
-    # jinja_env = Environment(
-    #     loader=FileSystemLoader(args.templates),
-    #     autoescape=False,
-    #     undefined=StrictUndefined,
-    #     keep_trailing_newline=True,
-    #     lstrip_blocks=True,
-    #     trim_blocks=True,
-    # )
-    # jinja_env.filters["regex_replace"] = regex_replace
-    #
-    # # Provenance
-    # # source = os.environ.get("B_SOURCE", "repo-b@<unknown-ref> " + args.values)
-    # source = "repo B"
-    #
-    # # Render files
-    # def render_to(tpl_name, target):
-    #     tpl = jinja_env.get_template(tpl_name)
-    #     rendered = tpl.render(**values, source=source, checksum="{{checksum}}")
-    #     final = add_header(rendered, source)
-    #     pathlib.Path(target).parent.mkdir(parents=True, exist_ok=True)
-    #     pathlib.Path(target).write_text(final, encoding="utf-8")
-    #
-    # render_to("env.tpl.j2", out / "env")
-    # render_to("gradle-block.tpl.j2", out / "gradle-block")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--configs", type=json.loads, help="JSON list of config objects")
+    parser.add_argument("--environment", type=str, help="chosen environment")
+    args = parser.parse_args()
+
+    for config in args.configs:
+        values_path = config['values'].replace("{{env}}", args.environment)
+        with open(values_path, "r", encoding="utf-8") as f:
+            values = yaml.safe_load(f)
+        with open(config['schema'], "r", encoding="utf-8") as f:
+            schema = json.load(f)
+        validate(values, schema)
+
+        for template in config['templates']:
+            source = "repo B"
+            out = pathlib.Path(template['output'].replace("{{env}}", args.environment))
+            out.parent.mkdir(parents=True, exist_ok=True)
+
+            jinja_env = Environment(
+                loader=FileSystemLoader('.'),
+                autoescape=False,
+                undefined=StrictUndefined,
+                keep_trailing_newline=True,
+                lstrip_blocks=True,
+                trim_blocks=True,
+            )
+            jinja_env.filters['regex_replace'] = regex_replace
+
+            render_to(jinja_env, template['path'], out, values, source)
 
 
 if __name__ == "__main__":
