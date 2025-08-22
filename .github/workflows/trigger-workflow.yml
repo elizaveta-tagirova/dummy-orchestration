@@ -83,7 +83,7 @@ jobs:
       - name: Push config variables
         run: |
           REPO="${{ matrix.repo }}"
-          VARS=${{ toJson(matrix.config_variables) }}
+          VARS='${{ toJson(matrix.config_variables) }}'
           
           echo "$VARS" | jq -c '.[]' | while read -r entry; do
             schema=$(echo "$entry" | jq -r '.schema // empty')
