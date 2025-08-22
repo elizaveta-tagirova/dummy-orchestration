@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "App vars set 1",
+  "type": "object",
+  "properties": {
+    "var1": { "type": "boolean" },
+    "var2": { "type": "string" }
+  },
+  "additionalProperties": false
+}

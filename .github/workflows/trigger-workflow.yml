@@ -80,6 +80,29 @@ jobs:
             git push origin ${{ matrix.branch }}
           fi
 
+      - name: Push config variables
+        run: |
+          REPO="${{ matrix.repo }}"
+          VARS=${{ toJson(matrix.config_variables) }}
+          
+          echo "$VARS" | jq -c '.[]' | while read -r entry; do
+            name=$(echo "$entry"   | jq -r '.name')
+            schema=$(echo "$entry" | jq -r '.schema // empty')
+            values_path=$(echo "$entry" | jq -r '.values')
+            values_path=$(echo "$values_path" | sed "s/{{env}}/${ENVIRONMENT_NAME}/g")
+          
+            yq -o=json '.' "$values_path" | jq -c 'to_entries[]' | while read -r kv; do
+              k=$(echo "$kv" | jq -r '.key')
+              v=$(echo "$kv" | jq -r '.value')
+              payload=$(jq -n --arg name "$k" --arg value "$v" '{name:$name, value:$value}')
+              curl -X PATCH \
+                -H "Authorization: token ${TRIGGER_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                https://api.github.com/repos/${REPO}/actions/variables/$k \
+                -d "$payload"
+            done
+          done
+
       - name: Trigger remote workflow
         id: trigger-target
         shell: bash
