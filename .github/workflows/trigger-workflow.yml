@@ -1,13 +1,23 @@
 name: Trigger Remote Workflows
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      environment-name:
+        description: 'deploy env'
+        required: true
+        default: test
+        type: choice
+        options:
+          - test
+          - prod
   push:
     paths:
       - 'trigger-targets.yml'
 
 env:
   TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+  ENVIRONMENT_NAME: ${{ inputs.environment-name }}
 
 jobs:
   load-matrix:
@@ -49,7 +59,7 @@ jobs:
         run: python -m pip install -r tools/requirements.txt
 
       - name: Render configs
-        run: python tools/render_config.py --configs '${{ toJson(matrix.configs) }}'
+        run: python tools/render_config.py --configs '${{ toJson(matrix.configs) }}' --environment ${ENVIRONMENT_NAME}
 
       - name: Trigger remote workflow
         id: trigger-target
