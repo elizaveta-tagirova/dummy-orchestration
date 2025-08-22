@@ -11,16 +11,26 @@ include:
         templates:
           - path: templates/app-config-1/env.tpl.j2
             output: out/dummy-microservice/{{env}}/files/app-config-1.env
+            meta:
+              destination: app-config-1.env
           - path: templates/app-config-1/gradle-block.tpl.j2
             output: out/dummy-microservice/{{env}}/blocks/app-config-1.gradle-block
+            meta:
+              destination: build.gradle.kts
+              block_name: first-block
       - name: app-config-2
         schema: schema/app-config-2.schema.json
         values: values/dummy-microservice/{{env}}/app-config-2.yaml
         templates:
           - path: templates/app-config-1/env.tpl.j2
             output: out/dummy-microservice/{{env}}/files/app-config-2.env
+            meta:
+              destination: app-config-2.env
           - path: templates/app-config-1/gradle-block.tpl.j2
             output: out/dummy-microservice/{{env}}/blocks/app-config-2.gradle-block
+            meta:
+              destination: _build.gradle.kts
+              block_name: some-block
     config_variables:
       - set_name: app-vars-set-1
         schema: schema/app-vars-set-1.schema.json
