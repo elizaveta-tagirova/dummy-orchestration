@@ -61,6 +61,26 @@ jobs:
       - name: Render configs
         run: python tools/render_config.py --configs '${{ toJson(matrix.configs) }}' --environment ${ENVIRONMENT_NAME}
 
+      - name: Clone target repo
+        env: { GH_PAT: ${{ secrets.PUSH_TO_A_TOKEN }} }
+        run: |
+          git clone --branch ${{ matrix.branch }} https://x-access-token:${TRIGGER_TOKEN}@github.com/${{ matrix.repo }} target-repo
+
+      - name: Push generated configs
+        run: |
+          cd target-repo
+          git config user.name "Dummy Orchestrator"
+          git config user.email "dummy-orchestrator@example.com"
+          mkdir -p .config/generated
+          rsync -a ../out/ .config/generated/
+          git add .config/generated
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore(config): auto push config from orchestrator"
+            git push origin ${{ matrix.branch }}
+          fi
+
       - name: Trigger remote workflow
         id: trigger-target
         shell: bash
