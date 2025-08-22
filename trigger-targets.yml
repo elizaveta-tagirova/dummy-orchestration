@@ -22,6 +22,6 @@ include:
           - path: templates/app-config-1/gradle-block.tpl.j2
             output: out/dummy-microservice/{{env}}/blocks/app-config-2.gradle-block
     config_variables:
-      - name: app-vars-set-1
+      - set_name: app-vars-set-1
         schema: schema/app-vars-set-1.schema.json
         values: values/dummy-microservice/{{env}}/app-vars-set-1.yaml
