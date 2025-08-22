@@ -62,7 +62,6 @@ jobs:
         run: python tools/render_config.py --configs '${{ toJson(matrix.configs) }}' --environment ${ENVIRONMENT_NAME}
 
       - name: Clone target repo
-        env: { GH_PAT: ${{ secrets.PUSH_TO_A_TOKEN }} }
         run: |
           git clone --branch ${{ matrix.branch }} https://x-access-token:${TRIGGER_TOKEN}@github.com/${{ matrix.repo }} target-repo
 
