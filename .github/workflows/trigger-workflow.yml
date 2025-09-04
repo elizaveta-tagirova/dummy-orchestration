@@ -75,7 +75,7 @@ jobs:
           target_branch: ${{ matrix.branch }}
 
       - name: Check target repo dir
-        run: echo "target repo dir ${{ steps.clone_target_repo.repo_dir }}"
+        run: echo "target repo dir ${{ steps.clone_target_repo.outputs.repo_dir }}"
 
       - name: Test composite action push_config_files
         id: push_config_files
@@ -86,7 +86,7 @@ jobs:
           target_repo: ${{ matrix.repo }}
           env_name: ${{ env.ENVIRONMENT_NAME }}
           target_branch: ${{ matrix.branch }}
-          target_repo_dir: ${{ steps.clone_target_repo.repo_dir }}"
+          target_repo_dir: ${{ steps.clone_target_repo.outputs.repo_dir }}
 
       - name: Test prev outputs
         run: echo "Outputs ${{ steps.push_config_files.outputs }}"
