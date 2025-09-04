@@ -28,9 +28,11 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Test action
-        uses: ./.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
+        uses: ./.github/actions/test_action
 
   load-matrix:
     needs: [test-action]
