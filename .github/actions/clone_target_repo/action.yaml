@@ -1,0 +1,46 @@
+name: "Clone target repo"
+description: "Clone target repo"
+
+inputs:
+  token:
+    description: "Token with read access to TARGET_REPO"
+    required: true
+  target_repo:
+    description: "Destination repository"
+    required: true
+  target_branch:
+    description: "Branch to clone"
+    default: "main"
+    required: false
+
+outputs:
+  repo_dir:
+    description: "Absolute path to the cloned target repo (under $RUNNER_TEMP)"
+    value: ${{ steps.clone.outputs.repo_dir }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Prepare temp dir
+      id: prep
+      shell: bash
+      run: |
+        set -euo pipefail
+        tmp_dir="$(mktemp -d "${RUNNER_TEMP}/target-repo.XXXXXX")"
+        echo "tmp_dir=${tmp_dir}" >> "${GITHUB_OUTPUT}"
+
+    - name: Clone target repo
+      id: clone
+      env:
+        TOKEN: ${{ inputs.token }}
+        TARGET_REPO: ${{ inputs.target_repo }}
+        TARGET_BRANCH: ${{ inputs.target_branch }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        repo_dir="${{ steps.prep.outputs.tmp_dir }}"
+        git clone --branch "${TARGET_BRANCH}" "https://x-access-token:${TOKEN}@github.com/${TARGET_REPO}" "${repo_dir}"
+        echo "repo_dir=${repo_dir}" >> "${GITHUB_OUTPUT}"

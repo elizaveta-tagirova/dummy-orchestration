@@ -66,6 +66,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Clone target repo
+        id: clone_target_repo
+        uses: ./.github/actions/clone_target_repo
+        with:
+          token: ${{ env.TRIGGER_TOKEN }}
+          target_repo: ${{ matrix.repo }}
+          target_branch: ${{ matrix.branch }}
+
+      - name: Check target repo dir
+        run: echo "target repo dir ${{ steps.clone_target_repo.repo_dir }}"
+
       - name: Test composite action push_config_files
         id: push_config_files
         uses: ./.github/actions/push_config_files
@@ -75,6 +86,7 @@ jobs:
           target_repo: ${{ matrix.repo }}
           env_name: ${{ env.ENVIRONMENT_NAME }}
           target_branch: ${{ matrix.branch }}
+          target_repo_dir: ${{ steps.clone_target_repo.repo_dir }}"
 
       - name: Test prev outputs
         run: echo "Outputs ${{ steps.push_config_files.outputs }}"

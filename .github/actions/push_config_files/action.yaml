@@ -19,6 +19,9 @@ inputs:
     description: "Branch to push to"
     default: "main"
     required: false
+  target_repo_dir:
+    description: "Cloned repo dir"
+    required: true
 
 outputs:
   pushed:
@@ -34,26 +37,17 @@ runs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Clone target repo
-        env:
-          TOKEN: ${{ inputs.token }}
-          TARGET_REPO: ${{ inputs.target_repo }}
-          TARGET_BRANCH: ${{ inputs.target_branch }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git clone --branch "${TARGET_BRANCH}" "https://x-access-token:${TOKEN}@github.com/${TARGET_REPO}" target-repo
-
       - name: Push files
         id: push_files
         env:
           SERVICE_NAME: ${{ inputs.service_name }}
           ENV_NAME: ${{ inputs.env_name }}
           TARGET_BRANCH: ${{ inputs.target_branch }}
+          TARGET_REPO_DIR: ${{ inputs.target_repo_dir }}
         shell: bash
         run: |
           set -euo pipefail
-          cd target-repo
+          cd "${TARGET_REPO_DIR}"
           git config user.name "Dummy Orchestrator"
           git config user.email "dummy-orchestrator@example.com"
           mkdir -p .orchestrator-configs
