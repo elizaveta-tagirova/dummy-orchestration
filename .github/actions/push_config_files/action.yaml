@@ -1,0 +1,72 @@
+name: "Push config files"
+description: "Push config files"
+
+inputs:
+  service_name:
+    description: "Service name"
+    required: true
+  env_name:
+    description: "Environment name"
+    default: "prod"
+    required: false
+  token:
+    description: "Token with write access to TARGET_REPO"
+    required: true
+  target_repo:
+    description: "Destination repository"
+    required: true
+  target_branch:
+    description: "Branch to push to"
+    default: "main"
+    required: false
+
+outputs:
+  pushed:
+    description: "True if a commit was pushed, false otherwise"
+    value: ${{ steps.push_files.outputs.pushed }}
+  commit_sha:
+    description: "Commit SHA that was pushed (empty if not)"
+    value: ${{ steps.push_files.outputs.commit_sha }}
+
+runs:
+  using: "composite"
+  steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone target repo
+        env:
+          TOKEN: ${{ inputs.token }}
+          TARGET_REPO: ${{ inputs.target_repo }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --branch "${TARGET_BRANCH}" "https://x-access-token:${TOKEN}@github.com/${TARGET_REPO}" target-repo
+
+      - name: Push files
+        id: push_files
+        env:
+          SERVICE_NAME: ${{ inputs.service_name }}
+          ENV_NAME: ${{ inputs.env_name }}
+          TARGET_BRANCH: ${{ inputs.target_branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target-repo
+          git config user.name "Dummy Orchestrator"
+          git config user.email "dummy-orchestrator@example.com"
+          mkdir -p .orchestrator-configs
+          rsync -a "${GITHUB_WORKSPACE}/out/${SERVICE_NAME}/${ENV_NAME}" .orchestrator-configs
+          git add .orchestrator-configs
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "commit_sha=" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "automation(configs): auto push config from orchestrator"
+            git push origin "${TARGET_BRANCH}"
+            sha="$(git rev-parse HEAD)"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            echo "commit_sha=${sha}" >> "$GITHUB_OUTPUT"
+          fi

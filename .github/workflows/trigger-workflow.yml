@@ -66,6 +66,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Test composite action push_config_files
+        uses: ./.github/actions/push_config_files
+        with:
+          service_name: ${{ matrix.name }}
+          token: ${{ env.TRIGGER_TOKEN }}
+          target_repo: ${{ matrix.repo }}
+          env_name: ${{ env.ENVIRONMENT_NAME }}
+          target_branch: ${{ matrix.branch }}
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with: { python-version: "3.x" }
