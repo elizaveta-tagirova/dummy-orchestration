@@ -89,7 +89,7 @@ jobs:
           target_repo_dir: ${{ steps.clone_target_repo.outputs.repo_dir }}
 
       - name: Test prev outputs
-        run: echo "Outputs ${{ steps.push_config_files.outputs }}"
+        run: echo "Outputs ${{ toJson(steps.push_config_files.outputs) }}"
 
       - name: Setup Python
         uses: actions/setup-python@v4
