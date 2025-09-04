@@ -21,7 +21,19 @@ env:
   ENVIRONMENT_NAME: ${{ inputs.environment-name }}
 
 jobs:
+  test-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test action
+        uses: ./.github/actions/test_action@0a1b02c452e82f1d998fecaca9080009758f4d6f
+
   load-matrix:
+    needs: [test-action]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-targets.outputs.matrix }}
