@@ -29,8 +29,8 @@ runs:
       shell: bash
       env:
         TOKEN: ${{ inputs.token }}
-        REPO:  ${{ inputs.repo }}
-        ENV_NAME: ${{ inputs.environment_name }}
+        REPO:  ${{ inputs.target_repo }}
+        ENV_NAME: ${{ inputs.env_name }}
         VARS: ${{ inputs.config_variables_json }}
       run: |
         echo "$VARS" | jq -c '.[]' | while read -r entry; do
