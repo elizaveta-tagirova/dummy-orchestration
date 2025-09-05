@@ -102,7 +102,7 @@ jobs:
         run: echo "Outputs ${{ toJson(steps.upload_config_artifacts.outputs) }}"
 
       - name: Trigger remote workflow with import-from-orchestrator
-        id: trigger-target
+        id: trigger-target-artifact
         shell: bash
         run: |
           set -euo pipefail
