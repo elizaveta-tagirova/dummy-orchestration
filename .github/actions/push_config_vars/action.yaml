@@ -1,0 +1,61 @@
+name: "Push config vars"
+description: "Push config vars"
+
+inputs:
+  env_name:
+    description: "Environment name"
+    default: "prod"
+    required: false
+  token:
+    description: "Token with write access to TARGET_REPO"
+    required: true
+  target_repo:
+    description: "Destination repository"
+    required: true
+  config_variables_json:
+    description: "JSON array describing sources (e.g., toJson(matrix.config_variables))"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install yq & jq
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y yq jq
+
+    - name: Push config variables
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.token }}
+        REPO:  ${{ inputs.repo }}
+        ENV_NAME: ${{ inputs.environment_name }}
+        VARS: ${{ inputs.config_variables_json }}
+      run: |
+        echo "$VARS" | jq -c '.[]' | while read -r entry; do
+          schema=$(echo "$entry" | jq -r '.schema // empty')
+          values_path=$(echo "$entry" | jq -r '.values')
+          values_path=$(echo "$values_path" | sed "s/{{env}}/${ENV_NAME}/g")
+        
+          yq -o=json '.' "$values_path" | jq -c 'to_entries[]' | while read -r kv; do
+            k=$(echo "$kv" | jq -r '.key')
+            v=$(echo "$kv" | jq -r '.value')
+            payload=$(jq -n --arg name "$k" --arg value "$v" '{name:$name, value:$value}')
+            update_code=$(curl -X PATCH \
+              -H "Authorization: token ${TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/${REPO}/actions/variables/$k \
+              -d "$payload"
+            )
+            echo "Update code: ${update_code}"
+            if [ "$update_code" = "404" ]; then
+              create_code=$(curl -X POST \
+                -H "Authorization: token ${TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                https://api.github.com/repos/${REPO}/actions/variables/$k \
+                -d "$payload")
+              echo "Create code: ${create_code}"
+            fi
+          done
+        done

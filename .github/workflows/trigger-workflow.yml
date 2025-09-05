@@ -91,6 +91,15 @@ jobs:
       - name: Test prev outputs
         run: echo "Outputs ${{ toJson(steps.push_config_files.outputs) }}"
 
+      - name: Test composite action push_config_vars
+        id: push_config_vars
+        uses: ./.github/actions/push_config_vars
+        with:
+          token: ${{ env.VARS_TOKEN }}
+          env_name: ${{ env.ENVIRONMENT_NAME }}
+          target_repo: ${{ matrix.repo }}
+          config_variables_json: ${{ toJson(matrix.config_variables) }}
+
       - name: Test composite action upload_config_artifacts
         id: upload_config_artifacts
         uses: ./.github/actions/upload_config_artifacts
