@@ -19,12 +19,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install yq & jq
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y yq jq
-
     - name: Push config variables
       shell: bash
       env:
