@@ -1,0 +1,39 @@
+name: "Upload config artifacts"
+description: "Upload config artifacts"
+
+inputs:
+  service_name:
+    description: "Service name"
+    required: true
+  env_name:
+    description: "Environment name"
+    default: "prod"
+    required: false
+
+outputs:
+  artifact_name:
+    description: "artifact_name"
+    value: ${{ steps.upload_files.outputs.artifact_name }}
+  run_id:
+    description: "run_id"
+    value: ${{ steps.upload_files.outputs.run_id }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Upload artifact with files
+      uses: actions/upload-artifact@v4
+      with:
+        name: orchestrator-config-files-${{ github.run_id }}
+        path: ./out/${{ inputs.service_name }}/${{ inputs.env_name }}
+        retention-days: 3
+
+    - name: Set output artifact name
+      id: upload_files
+      shell: bash
+      run: |
+        echo "artifact_name=orchestrator-config-files-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+        echo "run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
