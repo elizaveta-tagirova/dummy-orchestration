@@ -28,7 +28,7 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: orchestrator-config-files-${{ github.run_id }}
-        path: ./out/${{ inputs.service_name }}/${{ inputs.env_name }}
+        path: ./out/${{ inputs.service_name }}
         retention-days: 3
 
     - name: Set output artifact name
