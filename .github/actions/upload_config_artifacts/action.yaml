@@ -55,7 +55,8 @@ runs:
           schema=$(echo "$entry" | jq -r '.schema // empty')
           values_path=$(echo "$entry" | jq -r '.values')
           values_path=$(echo "$values_path" | sed "s/{{env}}/${ENV_NAME}/g")
-        echo "values_path=${values_path}" >> "$GITHUB_OUTPUT"
+          echo "values_path=${values_path}" >> "$GITHUB_OUTPUT"
+        done
 
     - name: Upload artifact with vars
       uses: actions/upload-artifact@v4
