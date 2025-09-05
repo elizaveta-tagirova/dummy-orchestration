@@ -59,6 +59,7 @@ jobs:
         with:
           service_name: ${{ matrix.name }}
           env_name: ${{ env.ENVIRONMENT_NAME }}
+          config_variables_json: ${{ toJson(matrix.config_variables) }}
 
       - name: Trigger remote workflow
         id: trigger-target-artifact
@@ -70,7 +71,8 @@ jobs:
           SOURCE_REPO="${{ github.event.repository.name }}"
           WORKFLOW="${{ matrix.workflow_filename }}"
           BRANCH="${{ matrix.branch }}"
-          ARTIFACT_NAME="${{ steps.upload_config_artifacts.outputs.artifact_name }}"
+          ARTIFACT_NAME_FILES="${{ steps.upload_config_artifacts.outputs.artifact_name_files }}"
+          ARTIFACT_NAME_VARS="${{ steps.upload_config_artifacts.outputs.artifact_name_vars }}"
           RUN_ID="${{ steps.upload_config_artifacts.outputs.run_id }}"
           SAVE_PATH="${{ env.CONFIGS_SAVE_PATH }}"
 

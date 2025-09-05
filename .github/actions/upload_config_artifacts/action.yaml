@@ -9,11 +9,17 @@ inputs:
     description: "Environment name"
     default: "prod"
     required: false
+  config_variables_json:
+    description: "JSON array describing sources (e.g., toJson(matrix.config_variables))"
+    required: true
 
 outputs:
-  artifact_name:
-    description: "artifact_name"
+  artifact_name_files:
+    description: "artifact_name_files"
     value: ${{ steps.upload_files.outputs.artifact_name }}
+  artifact_name_vars:
+    description: "artifact_name_vars"
+    value: ${{ steps.upload_vars.outputs.artifact_name }}
   run_id:
     description: "run_id"
     value: ${{ steps.upload_files.outputs.run_id }}
@@ -37,3 +43,29 @@ runs:
       run: |
         echo "artifact_name=orchestrator-config-files-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
         echo "run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+
+    - name: Load env vars
+      shell: bash
+      id: load_vars
+      env:
+        VARS: ${{ inputs.config_variables_json }}
+        ENV_NAME: ${{ inputs.env_name }}
+      run: |
+        echo "$VARS" | jq -c '.[]' | while read -r entry; do
+          schema=$(echo "$entry" | jq -r '.schema // empty')
+          values_path=$(echo "$entry" | jq -r '.values')
+          values_path=$(echo "$values_path" | sed "s/{{env}}/${ENV_NAME}/g")
+        echo "values_path=${values_path}" >> "$GITHUB_OUTPUT"
+
+    - name: Upload artifact with vars
+      uses: actions/upload-artifact@v4
+      with:
+        name: orchestrator-config-vars-${{ github.run_id }}
+        path: ${{ steps.load_vars.outputs.values_path }}
+        retention-days: 3
+
+    - name: Set output artifact name
+      id: upload_vars
+      shell: bash
+      run: |
+        echo "artifact_name=orchestrator-config-vars-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
