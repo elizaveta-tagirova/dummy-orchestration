@@ -19,6 +19,7 @@ env:
   TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
   VARS_TOKEN: ${{ secrets.VARS_TOKEN }}
   ENVIRONMENT_NAME: ${{ inputs.environment-name }}
+  CONFIGS_SAVE_PATH: .orchestrator-configs
 
 jobs:
   load-matrix:
@@ -71,11 +72,12 @@ jobs:
           BRANCH="${{ matrix.branch }}"
           ARTIFACT_NAME="${{ steps.upload_config_artifacts.outputs.artifact_name }}"
           RUN_ID="${{ steps.upload_config_artifacts.outputs.run_id }}"
+          SAVE_PATH="${{ env.CONFIGS_SAVE_PATH }}"
 
           echo "Triggering ${REPO}/${WORKFLOW} on branch ${BRANCH}"
           
-          payload=$(printf '{"event_type":"import-from-orchestrator","client_payload":{"branch":"%s","workflow_filename":"%s","source_repo":"%s", "source_owner":"%s", "artifact_name":"%s", "run_id":"%s"}}' \
-          "${BRANCH}" "${WORKFLOW}" "${SOURCE_REPO}" "${SOURCE_OWNER}" "${ARTIFACT_NAME}" "${RUN_ID}")
+          payload=$(printf '{"event_type":"import-from-orchestrator","client_payload":{"branch":"%s","workflow_filename":"%s","source_repo":"%s", "source_owner":"%s", "artifact_name":"%s", "run_id":"%s", "path":"%s"}}' \
+          "${BRANCH}" "${WORKFLOW}" "${SOURCE_REPO}" "${SOURCE_OWNER}" "${ARTIFACT_NAME}" "${RUN_ID}" "${SAVE_PATH}")
 
           curl -sS -f -X POST \
             -H "Authorization: Bearer ${TRIGGER_TOKEN}" \
