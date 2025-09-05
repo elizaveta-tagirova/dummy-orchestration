@@ -1,0 +1,84 @@
+name: Trigger Remote Workflows (Artifacts way)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment-name:
+        description: 'deploy env'
+        required: true
+        default: test
+        type: choice
+        options:
+          - test
+          - prod
+  push:
+    paths:
+      - 'trigger-targets.yml'
+
+env:
+  TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+  VARS_TOKEN: ${{ secrets.VARS_TOKEN }}
+  ENVIRONMENT_NAME: ${{ inputs.environment-name }}
+
+jobs:
+  load-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq & jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq jq
+
+      - name: Read targets from config file
+        id: set-targets
+        shell: bash
+        run: |
+          echo "Trigger targets:"
+          cat trigger-targets.yml
+          MATRIX_JSON=$(yq -j '.' trigger-targets.yml | jq -c '.')
+          echo "matrix=${MATRIX_JSON}" >> "$GITHUB_OUTPUT"
+
+  fanout:
+    needs: load-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload config artifacts
+        id: upload_config_artifacts
+        uses: ./.github/actions/upload_config_artifacts
+        with:
+          service_name: ${{ matrix.name }}
+          env_name: ${{ env.ENVIRONMENT_NAME }}
+
+      - name: Trigger remote workflow
+        id: trigger-target-artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="${{ matrix.repo }}"
+          SOURCE_OWNER="${{ github.repository_owner }}"
+          SOURCE_REPO="${{ github.event.repository.name }}"
+          WORKFLOW="${{ matrix.workflow_filename }}"
+          BRANCH="${{ matrix.branch }}"
+          ARTIFACT_NAME="${{ steps.upload_config_artifacts.outputs.artifact_name }}"
+          RUN_ID="${{ steps.upload_config_artifacts.outputs.run_id }}"
+
+          echo "Triggering ${REPO}/${WORKFLOW} on branch ${BRANCH}"
+          
+          payload=$(printf '{"event_type":"import-from-orchestrator","client_payload":{"branch":"%s","workflow_filename":"%s","source_repo":"%s", "source_owner":"%s", "artifact_name":"%s", "run_id":"%s"}}' \
+          "${BRANCH}" "${WORKFLOW}" "${SOURCE_REPO}" "${SOURCE_OWNER}" "${ARTIFACT_NAME}" "${RUN_ID}")
+
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer ${TRIGGER_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/dispatches" \
+            -d "${payload}"

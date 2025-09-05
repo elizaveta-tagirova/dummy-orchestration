@@ -1,0 +1,97 @@
+name: Trigger Remote Workflows (Push way)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment-name:
+        description: 'deploy env'
+        required: true
+        default: test
+        type: choice
+        options:
+          - test
+          - prod
+  push:
+    paths:
+      - 'trigger-targets.yml'
+
+env:
+  TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+  VARS_TOKEN: ${{ secrets.VARS_TOKEN }}
+  ENVIRONMENT_NAME: ${{ inputs.environment-name }}
+
+jobs:
+  load-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq & jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq jq
+
+      - name: Read targets from config file
+        id: set-targets
+        shell: bash
+        run: |
+          echo "Trigger targets:"
+          cat trigger-targets.yml
+          MATRIX_JSON=$(yq -j '.' trigger-targets.yml | jq -c '.')
+          echo "matrix=${MATRIX_JSON}" >> "$GITHUB_OUTPUT"
+
+  fanout:
+    needs: load-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone target repo
+        id: clone_target_repo
+        uses: ./.github/actions/clone_target_repo
+        with:
+          token: ${{ env.TRIGGER_TOKEN }}
+          target_repo: ${{ matrix.repo }}
+          target_branch: ${{ matrix.branch }}
+
+      - name: Push config files
+        id: push_config_files
+        uses: ./.github/actions/push_config_files
+        with:
+          service_name: ${{ matrix.name }}
+          token: ${{ env.TRIGGER_TOKEN }}
+          target_repo: ${{ matrix.repo }}
+          env_name: ${{ env.ENVIRONMENT_NAME }}
+          target_branch: ${{ matrix.branch }}
+          target_repo_dir: ${{ steps.clone_target_repo.outputs.repo_dir }}
+
+      - name: Push config vars
+        id: push_config_vars
+        uses: ./.github/actions/push_config_vars
+        with:
+          token: ${{ env.VARS_TOKEN }}
+          env_name: ${{ env.ENVIRONMENT_NAME }}
+          target_repo: ${{ matrix.repo }}
+          config_variables_json: ${{ toJson(matrix.config_variables) }}
+
+      - name: Trigger remote workflow
+        id: trigger-target
+        shell: bash
+        run: |
+          REPO="${{ matrix.repo }}"
+          WORKFLOW="${{ matrix.workflow_filename }}"
+          BRANCH="${{ matrix.branch }}"
+
+          echo "Triggering ${REPO}/${WORKFLOW} on branch ${BRANCH}"
+
+          curl -sS -X POST \
+            -H "Authorization: token ${TRIGGER_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches" \
+            -d "{\"ref\":\"${BRANCH}\"}"
