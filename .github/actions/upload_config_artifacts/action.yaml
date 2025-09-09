@@ -34,8 +34,9 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: orchestrator-config-files-${{ github.run_id }}
-        path: ./out/${{ inputs.service_name }}
+        path: ./out/${{ inputs.service_name }}/${{ inputs.env_name }}
         retention-days: 3
+        if-no-files-found: error
 
     - name: Set output artifact name
       id: upload_files
@@ -64,6 +65,7 @@ runs:
         name: orchestrator-config-vars-${{ github.run_id }}
         path: ${{ steps.load_vars.outputs.values_path }}
         retention-days: 3
+        if-no-files-found: error
 
     - name: Set output artifact name
       id: upload_vars
