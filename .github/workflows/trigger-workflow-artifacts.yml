@@ -6,20 +6,24 @@ on:
       environment-name:
         description: 'deploy env'
         required: true
-        default: test
+        default: test-env
         type: choice
-        options:
-          - test
-          - prod
-  push:
-    paths:
-      - 'trigger-targets.yml'
+        options: [test-env, pre-prod, prod]
+#  push:
+#    paths:
+#      - 'apps/*.yaml'
+#      - '.github/actions/**'
+#      - '.github/workflows/**'
 
 env:
   TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
-  VARS_TOKEN: ${{ secrets.VARS_TOKEN }}
+  VARS_TOKEN:    ${{ secrets.VARS_TOKEN }}
   ENVIRONMENT_NAME: ${{ inputs.environment-name }}
   CONFIGS_SAVE_PATH: .orchestrator-configs
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   load-matrix:
@@ -34,14 +38,38 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y yq jq
 
-      - name: Read targets from config file
+      - name: Build matrix from apps/*.yaml
         id: set-targets
         shell: bash
+        env:
+          ENV_NAME: ${{ env.ENVIRONMENT_NAME }}
         run: |
-          echo "Trigger targets:"
-          cat trigger-targets.yml
-          MATRIX_JSON=$(yq -j '.' trigger-targets.yml | jq -c '.')
-          echo "matrix=${MATRIX_JSON}" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          arr='[]'
+          shopt -s nullglob
+          for f in apps/*.yaml apps/*.yml; do
+            base="$(basename "$f")"
+            fallback_name="${base%.*}"
+            obj="$(yq -o=json '.' "$f" | jq -c --arg env "$ENV_NAME" --arg fallback_name "$fallback_name" '
+              . as $root
+              | ($root.enabled // true) as $enabled
+              | ($root.build.environment_configs[$env] // null) as $ec
+              | select($enabled and ($ec != null))                          # env must exist & app enabled
+              | ($ec.enabled // true) as $env_enabled
+              | select($env_enabled)                                        # env must be enabled
+              | {
+                  repo:              $root.build.repo,
+                  workflow_filename: $root.build.workflow_file,
+                  branch:            ($ec.branch // $root.build.branch // "main"),
+                  name:              ($root.name // $fallback_name),
+                  config_variables:  ($root.config_variables // [])
+                }
+            ')"
+            if [ -n "$obj" ] && [ "$obj" != "null" ]; then
+              arr="$(jq -c --argjson o "$obj" '. + [$o]' <<<"$arr")"
+            fi
+          done
+          echo "matrix=$(jq -c '.' <<<"$arr")" >> "$GITHUB_OUTPUT"
 
   fanout:
     needs: load-matrix
@@ -58,7 +86,7 @@ jobs:
         uses: ./.github/actions/upload_config_artifacts
         with:
           service_name: ${{ matrix.name }}
-          env_name: ${{ env.ENVIRONMENT_NAME }}
+          env_name:     ${{ env.ENVIRONMENT_NAME }}
           config_variables_json: ${{ toJson(matrix.config_variables) }}
 
       - name: Trigger remote workflow (composite)

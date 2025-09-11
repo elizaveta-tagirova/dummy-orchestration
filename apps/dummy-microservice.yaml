@@ -1,20 +1,25 @@
 name: dummy-microservice
-enabled: true # optional. default - true
+enabled: true  # optional, default true
+
 build:
   repo: elizaveta-tagirova/dummy-microservice
+  workflow_file: test-workflow.yml
+
   environment_configs:
     test-env:
       branch: master
-      enabled: false # tmp
+      enabled: false
     pre-prod:
       branch: master
       enabled: false
     prod:
       branch: master
-      enabled: true # tmp
-  workflow_file: test-workflow.yml
+      enabled: true
+
   env:
     image_tag: dev
-#deployment:
-#  name:
-#  repo:
+
+config_variables:
+  - set_name: app-vars-set-1
+    schema: schema/app-vars-set-1.schema.json
+    values: values/dummy-microservice/{{env}}/app-vars-set-1.yaml
