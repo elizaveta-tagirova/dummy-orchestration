@@ -85,7 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
+      matrix:
+        include: ${{ fromJSON(needs.load-matrix.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
