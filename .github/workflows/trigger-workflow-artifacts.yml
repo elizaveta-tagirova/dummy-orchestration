@@ -33,10 +33,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install yq & jq
+      - name: Install yq (v4) & jq
+        shell: bash
         run: |
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y yq jq
+          sudo apt-get install -y jq
+          YQ_VER="v4.44.3"
+          curl -sSL -o yq "https://github.com/mikefarah/yq/releases/download/${YQ_VER}/yq_linux_amd64"
+          sudo install -m 0755 yq /usr/local/bin/yq
+          yq --version
 
       - name: Build matrix from apps/*.yaml
         id: set-targets
@@ -50,13 +56,14 @@ jobs:
           for f in apps/*.yaml apps/*.yml; do
             base="$(basename "$f")"
             fallback_name="${base%.*}"
+      
             obj="$(yq -o=json '.' "$f" | jq -c --arg env "$ENV_NAME" --arg fallback_name "$fallback_name" '
               . as $root
               | ($root.enabled // true) as $enabled
               | ($root.build.environment_configs[$env] // null) as $ec
-              | select($enabled and ($ec != null))                          # env must exist & app enabled
+              | select($enabled and ($ec != null))
               | ($ec.enabled // true) as $env_enabled
-              | select($env_enabled)                                        # env must be enabled
+              | select($env_enabled)
               | {
                   repo:              $root.build.repo,
                   workflow_filename: $root.build.workflow_file,
@@ -65,10 +72,12 @@ jobs:
                   config_variables:  ($root.config_variables // [])
                 }
             ')"
+      
             if [ -n "$obj" ] && [ "$obj" != "null" ]; then
               arr="$(jq -c --argjson o "$obj" '. + [$o]' <<<"$arr")"
             fi
           done
+      
           echo "matrix=$(jq -c '.' <<<"$arr")" >> "$GITHUB_OUTPUT"
 
   fanout:
