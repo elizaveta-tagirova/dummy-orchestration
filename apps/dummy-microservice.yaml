@@ -1,0 +1,20 @@
+name: dummy-microservice
+enabled: true # optional. default - true
+build:
+  repo: elizaveta-tagirova/dummy-microservice
+  environment_configs:
+    test-env:
+      branch: master
+      enabled: false # tmp
+    pre-prod:
+      branch: master
+      enabled: false
+    prod:
+      branch: master
+      enabled: true # tmp
+  workflow_file: test-workflow.yml
+  env:
+    image_tag: dev
+#deployment:
+#  name:
+#  repo:
