@@ -114,3 +114,4 @@ jobs:
           artifact_name_vars:  ${{ steps.upload_config_artifacts.outputs.artifact_name_vars }}
           run_id:              ${{ steps.upload_config_artifacts.outputs.run_id }}
           save_path:           ${{ env.CONFIGS_SAVE_PATH }}
+          deploy_env: ${{ inputs.environment-name }}
