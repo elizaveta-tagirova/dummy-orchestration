@@ -61,28 +61,18 @@ jobs:
           env_name: ${{ env.ENVIRONMENT_NAME }}
           config_variables_json: ${{ toJson(matrix.config_variables) }}
 
-      - name: Trigger remote workflow
+      - name: Trigger remote workflow (composite)
         id: trigger-target-artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          REPO="${{ matrix.repo }}"
-          SOURCE_OWNER="${{ github.repository_owner }}"
-          SOURCE_REPO="${{ github.event.repository.name }}"
-          WORKFLOW="${{ matrix.workflow_filename }}"
-          BRANCH="${{ matrix.branch }}"
-          ARTIFACT_NAME_FILES="${{ steps.upload_config_artifacts.outputs.artifact_name_files }}"
-          ARTIFACT_NAME_VARS="${{ steps.upload_config_artifacts.outputs.artifact_name_vars }}"
-          RUN_ID="${{ steps.upload_config_artifacts.outputs.run_id }}"
-          SAVE_PATH="${{ env.CONFIGS_SAVE_PATH }}"
-
-          echo "Triggering ${REPO}/${WORKFLOW} on branch ${BRANCH}"
-          
-          payload=$(printf '{"event_type":"import-from-orchestrator","client_payload":{"branch":"%s","workflow_filename":"%s","source_repo":"%s", "source_owner":"%s", "artifact_name_files":"%s", "artifact_name_vars":"%s", "run_id":"%s", "save_path":"%s"}}' \
-          "${BRANCH}" "${WORKFLOW}" "${SOURCE_REPO}" "${SOURCE_OWNER}" "${ARTIFACT_NAME_FILES}" "${ARTIFACT_NAME_VARS}" "${RUN_ID}" "${SAVE_PATH}")
-
-          curl -sS -f -X POST \
-            -H "Authorization: Bearer ${TRIGGER_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${REPO}/dispatches" \
-            -d "${payload}"
+        uses: ./.github/actions/trigger_remote_workflow
+        with:
+          token:               ${{ env.TRIGGER_TOKEN }}
+          target_repo:         ${{ matrix.repo }}
+          event_type:          import-from-orchestrator
+          branch:              ${{ matrix.branch }}
+          workflow_filename:   ${{ matrix.workflow_filename }}
+          source_owner:        ${{ github.repository_owner }}
+          source_repo:         ${{ github.event.repository.name }}
+          artifact_name_files: ${{ steps.upload_config_artifacts.outputs.artifact_name_files }}
+          artifact_name_vars:  ${{ steps.upload_config_artifacts.outputs.artifact_name_vars }}
+          run_id:              ${{ steps.upload_config_artifacts.outputs.run_id }}
+          save_path:           ${{ env.CONFIGS_SAVE_PATH }}

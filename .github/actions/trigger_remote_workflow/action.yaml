@@ -1,0 +1,87 @@
+name: "Trigger remote workflow (repository_dispatch)"
+description: "Send repository_dispatch with artifact metadata to a target repo"
+
+inputs:
+  token:
+    description: "Token with repo:write on target repo (usually a PAT or github.token if same org rules allow)"
+    required: true
+  target_repo:
+    description: "owner/repo of the TARGET repository"
+    required: true
+  event_type:
+    description: "repository_dispatch event type"
+    default: "import-from-orchestrator"
+    required: false
+
+  branch:
+    description: "Target branch on which the workflow should operate"
+    required: true
+  workflow_filename:
+    description: "Filename of the workflow to run (passed in payload)"
+    required: true
+  source_owner:
+    description: "Owner of the source repo (this repo)"
+    required: true
+  source_repo:
+    description: "Name of the source repo (this repo)"
+    required: true
+  artifact_name_files:
+    description: "Artifact name for files bundle"
+    required: true
+  artifact_name_vars:
+    description: "Artifact name for vars bundle"
+    required: true
+  run_id:
+    description: "Workflow run ID that produced the artifacts"
+    required: true
+  save_path:
+    description: "Path (string) the target should save/expect, e.g. .orchestrator-configs"
+    required: true
+
+outputs:
+  http_status:
+    description: "HTTP status returned by GitHub API"
+    value: ${{ steps.call.outputs.http_status }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Trigger repository_dispatch
+      id: call
+      shell: bash
+      env:
+        TOKEN:               ${{ inputs.token }}
+        TARGET_REPO:         ${{ inputs.target_repo }}
+        EVENT_TYPE:          ${{ inputs.event_type }}
+        BRANCH:              ${{ inputs.branch }}
+        WORKFLOW:            ${{ inputs.workflow_filename }}
+        SOURCE_OWNER:        ${{ inputs.source_owner }}
+        SOURCE_REPO:         ${{ inputs.source_repo }}
+        ARTIFACT_NAME_FILES: ${{ inputs.artifact_name_files }}
+        ARTIFACT_NAME_VARS:  ${{ inputs.artifact_name_vars }}
+        RUN_ID:              ${{ inputs.run_id }}
+        SAVE_PATH:           ${{ inputs.save_path }}
+      run: |
+        set -euo pipefail
+        echo "::add-mask::${TOKEN}"
+
+        payload=$(printf '{"event_type":"%s","client_payload":{"branch":"%s","workflow_filename":"%s","source_repo":"%s","source_owner":"%s","artifact_name_files":"%s","artifact_name_vars":"%s","run_id":"%s","save_path":"%s"}}' \
+          "${EVENT_TYPE}" "${BRANCH}" "${WORKFLOW}" "${SOURCE_REPO}" "${SOURCE_OWNER}" \
+          "${ARTIFACT_NAME_FILES}" "${ARTIFACT_NAME_VARS}" "${RUN_ID}" "${SAVE_PATH}")
+
+        tmp="$(mktemp)"
+        status=$(curl -sS -f -o "$tmp" -w '%{http_code}' \
+          -X POST \
+          -H "Authorization: Bearer ${TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          "https://api.github.com/repos/${TARGET_REPO}/dispatches" \
+          -d "${payload}" || true)
+
+        # curl -f makes non-2xx fail; capture body for diagnostics
+        if [ "${status:-}" != "204" ]; then
+          echo "Request failed (HTTP ${status:-unknown}). Response body:"
+          cat "$tmp" || true
+          exit 1
+        fi
+
+        echo "http_status=${status}" >> "$GITHUB_OUTPUT"
